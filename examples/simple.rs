@@ -13,7 +13,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let converter = Text2Audio::new(&api_key);
 
     // Short text to convert
-    let text = "你好，世界！这是一个简单的文本转音频示例。text2audio 库可以将任何文本转换为语音。";
+    let text = "你好，世界！这是一个简单的文本转音频示例。text2audio 库使用ai分段与ai转音频，可以将任何文本转换为语音。";
 
     println!("Converting text to audio...");
     println!("Text: {}", text);

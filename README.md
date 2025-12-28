@@ -18,11 +18,17 @@ A high-performance Rust library for converting text to audio files using Zhipu A
 
 ## Supported AI Models
 
+### Text Segmentation Models
+Used for intelligent text splitting and semantic analysis:
+
 - **GLM-4.7** - Latest flagship model with superior semantic understanding
 - **GLM-4.6** - Advanced reasoning model for complex text analysis
 - **GLM-4.5** - High-performance general-purpose model
 - **GLM-4.5-Flash** - Optimized for speed (default)
 - **GLM-4.5-Air** - Lightweight and cost-effective model
+
+### Text-to-Speech Model
+- **GLM-TTS** - Zhipu AI's dedicated text-to-speech model for high-quality audio generation
 
 ## Prerequisites
 
