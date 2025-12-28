@@ -198,7 +198,7 @@ impl Client {
             并且每种语言都拥有100年的使用经验。根据提供的文本，按照语义学进行分段。",
         );
         let mut request = ChatCompletion::new(model, system_message, self.api_key.clone())
-            .add_messages(TextMessage::system(prompt));
+            .add_messages(TextMessage::user(prompt));
 
         if self.coding_plan {
             request = request.with_coding_plan();
