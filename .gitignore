@@ -1,0 +1,28 @@
+# Rust
+/target/
+**/*.rs.bk
+*.pdb
+Cargo.lock
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Output files
+*.wav
+*.mp3
+*.ogg
+
+# Environment
+.env
+.env.local
+
+# Claude
+.claude/
