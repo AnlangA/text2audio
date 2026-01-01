@@ -41,4 +41,8 @@ path = "examples/parallel.rs"
 name = "from_file"
 path = "examples/from_file.rs"
 
+[[example]]
+name = "play_audio"
+path = "examples/play_audio.rs"
+
 [dev-dependencies]
