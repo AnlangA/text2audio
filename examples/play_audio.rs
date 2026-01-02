@@ -74,65 +74,85 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 /// Play an audio file using the system's audio player
 ///
-/// This function tries multiple audio players in order:
-/// Windows:
-/// 1. powershell (Windows Media Player via .NET)
-/// 2. ffplay (from FFmpeg)
-///
-/// Linux:
-/// 1. aplay (ALSA - common on Linux)
-/// 2. paplay (PulseAudio - common on Linux)
-/// 3. ffplay (from FFmpeg)
-///
-/// macOS:
-/// 1. afplay
-/// 2. ffplay
+/// Platform-specific audio players:
+/// Windows: powershell (Windows Media Player)
+/// macOS: afplay, ffplay
+/// Linux: aplay, paplay, ffplay
 fn play_audio(file_path: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let is_windows = cfg!(windows);
-    let is_macos = cfg!(target_os = "macos");
-
-    if is_windows {
-        // Windows-specific players
-        println!("Using audio player: Windows Media Player (via PowerShell)");
-
-        // Convert path to Windows format if needed
-        let windows_path = if file_path.contains('/') {
-            file_path.replace('/', "\\")
-        } else {
-            file_path.to_string()
-        };
-
-        // Use PowerShell to play audio via Windows Media Player
-        let powershell_script = format!(
-            "$player = New-Object -ComObject WMPlayer.OCX;$player.URL = '{}';$player.controls.play();Start-Sleep -Seconds 1;while($player.playState -eq 3){{Start-Sleep -Seconds 1}}",
-            windows_path
-        );
-
-        let status = Command::new("powershell")
-            .args(&["-Command", &powershell_script])
-            .status()?;
-
-        if status.success() {
-            return Ok(());
-        } else {
-            eprintln!("Warning: Windows Media Player exited with status {}", status);
-        }
+    #[cfg(windows)]
+    {
+        play_audio_windows(file_path)
     }
 
-    // Cross-platform players
-    let players: Vec<(&str, Vec<&str>)> = if is_macos {
-        vec![
-            ("afplay", vec![file_path]),
-            ("ffplay", vec!["-nodisp", "-autoexit", file_path]),
-        ]
+    #[cfg(target_os = "macos")]
+    {
+        play_audio_macos(file_path)
+    }
+
+    #[cfg(not(any(windows, target_os = "macos")))]
+    {
+        play_audio_linux(file_path)
+    }
+}
+
+#[cfg(windows)]
+fn play_audio_windows(file_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+    println!("Using audio player: Windows Media Player (via PowerShell)");
+
+    // Convert path to Windows format if needed
+    let windows_path = if file_path.contains('/') {
+        file_path.replace('/', "\\")
     } else {
-        vec![
-            ("aplay", vec!["-q", file_path]),
-            ("paplay", vec![file_path]),
-            ("ffplay", vec!["-nodisp", "-autoexit", file_path]),
-        ]
+        file_path.to_string()
     };
 
+    // Use PowerShell to play audio via Windows Media Player
+    let powershell_script = format!(
+        "$player = New-Object -ComObject WMPlayer.OCX;$player.URL = '{}';$player.controls.play();Start-Sleep -Seconds 1;while($player.playState -eq 3){{Start-Sleep -Seconds 1}}",
+        windows_path
+    );
+
+    let status = Command::new("powershell")
+        .args(&["-Command", &powershell_script])
+        .status()?;
+
+    if status.success() {
+        Ok(())
+    } else {
+        eprintln!(
+            "Warning: Windows Media Player exited with status {}",
+            status
+        );
+        Err("No audio player found. Windows Media Player failed. Please install FFmpeg for fallback.".into())
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn play_audio_macos(file_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let players = vec![
+        ("afplay", vec![file_path]),
+        ("ffplay", vec!["-nodisp", "-autoexit", file_path]),
+    ];
+
+    try_play_audio_players(players, file_path)
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
+fn play_audio_linux(file_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let players = vec![
+        ("aplay", vec!["-q", file_path]),
+        ("paplay", vec![file_path]),
+        ("ffplay", vec!["-nodisp", "-autoexit", file_path]),
+    ];
+
+    try_play_audio_players(players, file_path)
+}
+
+#[cfg(any(target_os = "macos", not(any(windows, target_os = "macos"))))]
+fn try_play_audio_players(
+    players: Vec<(&str, Vec<&str>)>,
+    _file_path: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     for (player, args) in players {
         if which(player).is_ok() {
             println!("Using audio player: {}", player);
@@ -146,20 +166,12 @@ fn play_audio(file_path: &str) -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    let error_msg = if is_windows {
-        "No audio player found. Windows Media Player failed. Please install FFmpeg for fallback."
-    } else {
-        "No audio player found. Please install aplay, paplay, or ffplay"
-    };
-
-    Err(error_msg.into())
+    Err("No audio player found. Please install aplay, paplay, or ffplay".into())
 }
 
 /// Check if a command exists in PATH
 fn which(command: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let output = Command::new("which")
-        .arg(command)
-        .output()?;
+    let output = Command::new("which").arg(command).output()?;
 
     if output.status.success() {
         Ok(())
